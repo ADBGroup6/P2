@@ -59,10 +59,13 @@ def main():
 	#		print item['formattedUrl'][:7]
 	#		if item['formattedUrl'][:7] != 'http://' and item['formattedUrl'][:8] != 'https://' :
 	#			item['formattedUrl'] = 'http://' + item['formattedUrl']
-			if item['link'] not in seenURL:
-				page = urllib.urlopen(item['link'])
-				seenURL.append(item['link'])
-			else:
+			try:
+				if item['link'] not in seenURL:
+					page = urllib.urlopen(item['link'])
+					seenURL.append(item['link'])
+				else:
+					continue
+			except:
 				continue
 
 			#page = urllib.urlopen('https://en.wikipedia.org/wiki/Bill_Gates')
