@@ -23,16 +23,23 @@ def main():
 	print('Engine key  = ' + engine_key)
 	print('Relation    = ' + r)
 	print('Threshold   = ' + t)
-	print('Query       = ' + q)
+	print('Query       = ' + '\"'+ q + '\"')
 	print('# of Tuples = ' + k)
 
-	if r == 1:
+	# client_key = "AIzaSyCX8KognQPauqFUOCMxZL9AMgzFyHZAqVg"
+	# engine_key = '013766798457561572077:h1lapoxu5aq'
+	# r = 4
+	# t = 0.35
+	# q = "bill gates microsoft" 
+	# k = 15
+
+	if r == '1':
 		relation = 'Live_In'
-	if r == 2:
+	if r == '2':
 		relation = 'Located_In'
-	if r == 3:
+	if r == '3':
 		relation = 'OrgBased_In'
-	if r == 4:
+	if r == '4':
 		relation = 'Work_For'
 
 	X = {}
@@ -103,18 +110,18 @@ def main():
 				document.append(newsentence)
 
 			text2 = []
-			relations = {1 : ['PERSON', 'LOCATION]'],
-						 2 : ['LOCATION', 'LOCATION'],
-						 3 : ['ORGANIZATION', 'LOCATION'],
-						 4 : ['PERSON', 'ORGANIZATION']}
+			relations = {'1' : ['PERSON', 'LOCATION]'],
+						 '2' : ['LOCATION', 'LOCATION'],
+						 '3' : ['ORGANIZATION', 'LOCATION'],
+						 '4' : ['PERSON', 'ORGANIZATION']}
 			for j,sen in enumerate(document):
-				if r == 1 and relations[r][0] in NER[j] and relations[r][1] in NER[j]:
+				if r == '1' and relations[r][0] in NER[j] and relations[r][1] in NER[j]:
 					text2.append(sen.encode("ascii", "ignore"))
-				if r == 2 and 'LOCATION' in NER[j] and NER[j]['LOCATION']>=2:
+				if r == '2' and 'LOCATION' in NER[j] and NER[j]['LOCATION']>=2:
 					text2.append(sen.encode("ascii", "ignore"))
-				if r == 3 and 'ORGANIZATION' in NER[j] and 'LOCATION' in NER[j]:
+				if r == '3' and 'ORGANIZATION' in NER[j] and 'LOCATION' in NER[j]:
 					text2.append(sen.encode("ascii", "ignore"))
-				if r == 4 and relations[r][0] in NER[j] and relations[r][1] in NER[j]: 
+				if r == '4' and relations[r][0] in NER[j] and relations[r][1] in NER[j]: 
 					text2.append(sen.encode("ascii", "ignore"))
 
 			# 2nd pipeline: exist of relation type and extraction confidence.
