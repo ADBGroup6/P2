@@ -26,13 +26,6 @@ def main():
 	print('Query       = ' + q)
 	print('# of Tuples = ' + k)
 
-	# client_key = "AIzaSyCX8KognQPauqFUOCMxZL9AMgzFyHZAqVg"
-	# engine_key = '013766798457561572077:h1lapoxu5aq'
-	# r = 4
-	# t = 0.35
-	# q = "bill gates microsoft" 
-	# k = 15
-
 	if r == 1:
 		relation = 'Live_In'
 	if r == 2:
