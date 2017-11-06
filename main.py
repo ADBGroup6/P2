@@ -1,4 +1,5 @@
 import sys
+import getopt
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 import urllib
@@ -8,13 +9,29 @@ import operator
 
 def main():
 
+	# r: relation to extract. t: extraction confidence threshold.
+	# q: seed query. k: the number of tuples required.
+	client_key = sys.argv[1]
+	engine_key = sys.argv[2]
+	r = sys.argv[3]
+	t = sys.argv[4]
+	q = sys.argv[5]
+	k = sys.argv[6]
 
-	client_key = "AIzaSyAPbX4JVlc8waFre4Zve1v8zx1VSfhijIk"
-	engine_key = '008083549322187859573:yubw3z65huy'
-	r = 4
-	t = 0.45
-	q = "bill gates microsoft" 
-	k = 10
+	print('Parameters:')
+	print('Client key  = ' + client_key)
+	print('Engine key  = ' + engine_key)
+	print('Relation    = ' + r)
+	print('Threshold   = ' + t)
+	print('Query       = ' + q)
+	print('# of Tuples = ' + k)
+
+	# client_key = "AIzaSyCX8KognQPauqFUOCMxZL9AMgzFyHZAqVg"
+	# engine_key = '013766798457561572077:h1lapoxu5aq'
+	# r = 4
+	# t = 0.35
+	# q = "bill gates microsoft" 
+	# k = 15
 
 	if r == 1:
 		relation = 'Live_In'
@@ -25,7 +42,6 @@ def main():
 	if r == 4:
 		relation = 'Work_For'
 
-
 	X = {}
 	Y = {}
 	seenURL = []
@@ -34,31 +50,19 @@ def main():
 	service = build("customsearch", "v1",
 			developerKey=client_key)
 
+	iteration = 1
 	while True:
-
-
+		print '========== Iteration: ' + str(iteration) + ' - Query: ' + q + ' ========== '
 		res = service.cse().list(
 			q=q,
 			cx=engine_key,
 		).execute()
 
 		for i,item in enumerate(res['items']):
+			print 'Processing URL: '+item['formattedUrl']
 
-	#	for a in ['']:
-	#		item = res['items'][0]
-	#		i = 0
-			
-	#		print 'Result '+str(i+1)
-	#		print '['
-			print ' URL: '+item['formattedUrl']
-	#		print ' Title: '+BeautifulSoup(item['htmlTitle'], "html.parser").text
-	#		print ' Description: '+BeautifulSoup(item['htmlSnippet'], "html.parser").text
-	#		print ']'
-	#		print ''
-
-	#		print item['formattedUrl'][:7]
-	#		if item['formattedUrl'][:7] != 'http://' and item['formattedUrl'][:8] != 'https://' :
-	#			item['formattedUrl'] = 'http://' + item['formattedUrl']
+			# Extract actual plain text from webpage.
+			# For webpage unable to retreive, skip it and move on.
 			try:
 				if item['link'] not in seenURL:
 					page = urllib.urlopen(item['link'])
@@ -67,8 +71,6 @@ def main():
 					continue
 			except:
 				continue
-
-			#page = urllib.urlopen('https://en.wikipedia.org/wiki/Bill_Gates')
 
 			soup = BeautifulSoup(page, 'html.parser')
 
@@ -82,16 +84,10 @@ def main():
 			for p in soup.find_all(['p']):
 				tmp = p.get_text().replace(nonBreakSpace,' ')
 				text.append(tmp.strip().encode("ascii", "ignore")+'.')
-	#		for tr in soup.find_all('tr'):
-	#			tmp = ""
-	#			tds = tr.find_all('td')
-	#			for ele in tds:
-	#				tmp += ele.text.strip().encode("ascii", "ignore")
-	#			tmp += '.'
-	#			text.append(tmp)
-	#			print '-=-=-' + tmp
 
-			client = NLPCoreClient('/Users/yibo/Work/ADB Project2/stanford-corenlp-full-2017-06-09')
+			# 1st pipeline: tag name entities for webpage.
+			# Identify sentences containing name entities for processed relation. 
+			client = NLPCoreClient('/Users/wanheng/Desktop/adb/P2/stanford-corenlp-full-2017-06-09')
 			properties = {
 				"annotators": "tokenize,ssplit,pos,lemma,ner", #Second pipeline; leave out parse,relation for first
 				"parse.model": "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz", #Must be present for the second pipeline!
@@ -99,7 +95,6 @@ def main():
 				}
 			doc = client.annotate(text=text, properties=properties)
 			
-			#print(doc.sentences[0].relations[0])
 			NER = []
 			document = []
 			for i in doc.sentences:
@@ -113,86 +108,122 @@ def main():
 						tmp[x.ner] += 1
 				NER.append(tmp)
 				document.append(newsentence)
-	#			print newsentence
-	#			print tmp
-			#print '--------------------------------'
+
 			text2 = []
+			relations = {1 : ['PERSON', 'LOCATION]'],
+						 2 : ['LOCATION', 'LOCATION'],
+						 3 : ['ORGANIZATION', 'LOCATION'],
+						 4 : ['PERSON', 'ORGANIZATION']}
 			for j,sen in enumerate(document):
-				if r == 1 and 'PERSON' in NER[j] and 'LOCATION' in NER[j]:
+				if r == 1 and relations[r][0] in NER[j] and relations[r][1] in NER[j]:
 					text2.append(sen.encode("ascii", "ignore"))
 				if r == 2 and 'LOCATION' in NER[j] and NER[j]['LOCATION']>=2:
 					text2.append(sen.encode("ascii", "ignore"))
 				if r == 3 and 'ORGANIZATION' in NER[j] and 'LOCATION' in NER[j]:
 					text2.append(sen.encode("ascii", "ignore"))
-				if r == 4 and 'PERSON' in NER[j] and 'ORGANIZATION' in NER[j]: 
+				if r == 4 and relations[r][0] in NER[j] and relations[r][1] in NER[j]: 
 					text2.append(sen.encode("ascii", "ignore"))
-	#		print text2
-	#		print len(text2)
 
-			#print '--------------------------------'
-
+			# 2nd pipeline: exist of relation type and extraction confidence.
 			properties = {
 				"annotators": "tokenize,ssplit,pos,lemma,ner,parse,relation", #Second pipeline; leave out parse,relation for first
 				"parse.model": "edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz", #Must be present for the second pipeline!
 				"ner.useSUTime": "0"
 				}
 			doc = client.annotate(text=text2, properties=properties)
-			for it,i in enumerate(doc.sentences):
-				
+			relation = 'Work_For'
+			relation_overall = 0
+			relation_cnt = 0
+			for it,i in enumerate(doc.sentences):		
 				tup = ('','')
+				tup_type = ('', '')
 				score = 0
+				
 				for j in i.relations:
 					if j:
-						if max(j.probabilities.iteritems(), key=operator.itemgetter(1))[0] == relation and float(j.probabilities[relation]) >  t:
-	#						print j 
-							if float(j.probabilities[relation]) > score:
-								score = float(j.probabilities[relation])
-								#print type(j.probabilities[relation])
-								if r == 1:
-									if j.entities[0].type == 'PEOPLE':
-										tup = (j.entities[0].value,j.entities[1].value)
-									else:
-										tup = (j.entities[1].value,j.entities[0].value)
-								if r == 3:
-									if j.entities[0].type == 'ORGANIZATION':
-										tup = (j.entities[0].value,j.entities[1].value)
-									else:
-										tup = (j.entities[1].value,j.entities[0].value)
-								if r == 4:
-									if j.entities[0].type == 'ORGANIZATION':
-										tup = (j.entities[0].value,j.entities[1].value)
-									else:
-										tup = (j.entities[1].value,j.entities[0].value)
-								if r == 2:
+						# and float(j.probabilities[relation]) > t
+						if max(j.probabilities.iteritems(), key=operator.itemgetter(1))[0] == relation:
+							relation_overall += 1
+							# if float(j.probabilities[relation]) > score:
+							score = float(j.probabilities[relation])
+							#print type(j.probabilities[relation])
+							if r == 1 and [j.entities[0].type, j.entities[1].type] == ['PEOPLE','LOCATION']:
+								if j.entities[0].type == 'PEOPLE':
 									tup = (j.entities[0].value,j.entities[1].value)
-								if j.entities[0].value not in Y:
-									Y[j.entities[0].value] = j.entities[0].type
-								if j.entities[1].value not in Y:
-									Y[j.entities[1].value] = j.entities[1].type
-				if tup != ('',''):
-					print text2[it]
-					print tup[0]+'('+Y[tup[0]]+')'+'	'+tup[1]+'('+Y[tup[1]]+')'
-					print score
-					if tup not in X:
-						X[tup] = score
-					else:
-						X[tup] = max(score,X[tup])
-					print '--------------------------------'
-			print '========================'
+									tup_type = (j.entities[0].type,j.entities[1].type)
+								else:
+									tup = (j.entities[1].value,j.entities[0].value)
+									tup_type = (j.entities[1].type,j.entities[0].type)
+							if r == 3 and [j.entities[0].type, j.entities[1].type] == ['ORGANIZATION','LOCATION']:
+								if j.entities[0].type == 'ORGANIZATION':
+									tup = (j.entities[0].value,j.entities[1].value)
+									tup_type = (j.entities[0].type,j.entities[1].type)
+								else:
+									tup = (j.entities[1].value,j.entities[0].value)
+									tup_type = (j.entities[1].type,j.entities[0].type)
+							if r == 4 and [j.entities[0].type, j.entities[1].type] == ['PEOPLE','ORGANIZATION']:
+								if j.entities[0].type == 'ORGANIZATION':
+									tup = (j.entities[0].value,j.entities[1].value)
+									tup_type = (j.entities[0].type,j.entities[1].type)
+								else:
+									tup = (j.entities[1].value,j.entities[0].value)
+									tup_type = (j.entities[1].type,j.entities[0].type)
+							if r == 2 and j.entities[0].type == 'LOCATION' and j.entities[1].type == 'LOCATION':
+								tup = (j.entities[0].value,j.entities[1].value)
+								tup_type = (j.entities[0].type,j.entities[1].type)
 
+							if tup != ('', '') :
+								if tup not in X:
+									relation_cnt += 1
+									X[tup] = score
+									print '================= EXTRACTED RELATION ================='
+									print 'Sentence: ' + text2[it]
+									print 'RelationType: ' + relation + ' | Confidence= ' + str(score) \
+									+' | EntityType1= ' + tup_type[0] + ' | EntityValue1= ' + tup[0] \
+									+' | EntityTpye2= ' + tup_type[1] + ' | EntityValue2= ' + tup[1]
+									print '================= END OF RELATION DESC ==============='
+								else:
+									X[tup] = max(score, X[tup])
+
+			print 'Relations extracted from this website: ' + str(relation_cnt) + ' (Overall: ' + str(relation_overall) + ')'
+			print '----------------------------------------------------'
+
+
+		# Remove tuples with confidence below threshold.
+		print 'pruning relations below threshold'
+		Z = {}
+		for tup, value in X.iteritems():
+			if value > t:
+				Z[tup] = value
+		X = Z
+		print 'Number of tuples after pruning: ' + str(len(X))
+		
+
+		print '================= ALL RELATIONS ================='
+		flag = False
 		if len(X) >= k:
 			c = 0
 			for tup, value in sorted(X.iteritems(), key=lambda (k,v): (v,k),reverse = True):
-				print tup[0]+'('+Y[tup[0]]+')'+'	'+tup[1]+'('+Y[tup[1]]+'):   '+str(value)
+				print 'RelationType: ' + relation + ' | Confidence= ' + str(value) \
+				+' | Entity #1: ' + tup[0] + '(' + relations[r][0] + ')' \
+				+' | Entity #2: ' + tup[1] + '(' + relations[r][1] + ')'
    				c += 1
    				if c >= k :
    					return 
    		else: 
    			for tup, value in sorted(X.iteritems(), key=lambda (k,v): (v,k),reverse = True):
+   				print 'RelationType: ' + relation + ' | Confidence= ' + str(value) \
+				+' | Entity #1: ' + tup[0] + '(' + relations[r][0] + ')' \
+				+' | Entity #2: ' + tup[1] + '(' + relations[r][1] + ')'
    				if tup not in seenQuery:
-   					q = tup[0] + ' ' + tup[1]
+   					if flag == False:
+						q = tup[0] + ' ' + tup[1]
+						flag = True
    					seenQuery.append(q)
+   			if flag == False:
+   				break
 
-   		print '-*-*-*- NEXT ITERATION'
+   		iteration += 1
+   		print '-*-*-*- NEXT ITERATION -*-*-*-'
 if __name__ == '__main__':
 	main()
