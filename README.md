@@ -6,9 +6,9 @@
 ### b) List of Files    
 main.py   
 data.py    
-NLPCore.py     
-PythonNLPCore      
-stanford-corenlp-full-2017-06-09
+NLPCore.py
+input.txt
+input.txt.xml    
 ### c) Instruction for Running the Program
 **Installation:**            
 pip install beautifulsoup4     
