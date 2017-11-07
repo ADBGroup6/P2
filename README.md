@@ -43,6 +43,6 @@ AIzaSyAPbX4JVlc8waFre4Zve1v8zx1VSfhijIk
 **Engine ID:**        
 008083549322187859573:yubw3z65huy
 ### g) Additional Information        
-1. Please make sure the path for 'stanford-corenlp-full-2017-06-09' is correct to run the program.    
+1. Please make sure the path for 'stanford-corenlp-full-2017-06-09' is correct to run the program. The correct path for 'stanford-corenlp-full-2017-06-09' should be outside the project folder.     
 2. You should have java8 installed in order to run Stanford NLPCore correctly.
 
